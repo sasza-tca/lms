@@ -727,7 +727,7 @@ class LMS {
 				$this->UpdateCountryState($customeradd['invoice_zip'], $customeradd['invoice_stateid']);
 			}
 			$return = $this->DB->GetLastInsertID('customers');
-			if (SYSLOG) addlogs('dodano klienta: '.$customeradd['name'].' '.$customeradd['lastname'],'e=add;m=cus;c='.$return);
+			if (SYSLOG) addlogs('dodano klienta: <b>'.$customeradd['name'].' '.$customeradd['lastname'].'</b>, adres: '.$customeradd['zip'].' '.$customeradd['city'].' '.$customeradd['address'],'e=add;m=cus;c='.$return);
 			return $return;
 		} else
 			return FALSE;
@@ -2802,7 +2802,7 @@ class LMS {
 			if (SYSLOG) {
 			    if (!empty($nodedata['ownerid'])) {
 				$ownerid = $this->getnodeowner($id);
-				addlogs('dodano komputer: '.$this->getnodename($id).', klient: '.$this->getcustomername($ownerid),'e=add;m=node;n='.$id.';c='.$ownerid.';');
+				addlogs('dodano komputer: <b>'.$this->getnodename($id).'</b>, IP:'.$this->GetNodeIPByID($id).', IP publiczne:'.$this->GetNodePubIPByID($id).', MAC:'.$this->GetNodeMACByID($id).', klient: '.$this->getcustomername($ownerid),'e=add;m=node;n='.$id.';c='.$ownerid.';');
 			    }
 			    else
 				addlogs('dodano adres IP do urządzenia sieciowego '.$this->getnodename($id),'e=add;m=netdev;n='.$nodedata['netdev'].';');
@@ -4108,7 +4108,7 @@ class LMS {
 		if (SYSLOG && $sys_log) {
 			    $cusname = $this->getcustomername($addbalance['customerid']);
 			    if ($addbalance['type'] == '0') $str = 'zobowiązanie'; else $str = 'przychód';
-			    addlogs('dodano '.$str.' <b>'.moneyf($addbalance['value']).'</b> dla '.$cusname,'e=add;m=fin;c='.$addbalance['customerid']);
+			    addlogs('dodano '.$str.' Pozycja: <b>"'.$addbalance['comment'].'"</b> na kwotę: <b>'.moneyf($addbalance['value']).'</b> dla '.$cusname.'','e=add;m=fin;c='.$addbalance['customerid']);
 		}
 
 		return $this->DB->Execute('INSERT INTO cash (time, userid, value, type, taxid,
@@ -4128,7 +4128,7 @@ class LMS {
 	}
 
 	function DelBalance($id) {
-		$row = $this->DB->GetRow('SELECT docid, itemid, cash.customerid AS cid, value, documents.type AS doctype, importid
+		$row = $this->DB->GetRow('SELECT docid, itemid, cash.customerid AS cid, value, documents.type AS doctype, importid, comment
 					FROM cash
 					LEFT JOIN documents ON (docid = documents.id)
 					WHERE cash.id = ? ', array($id));
@@ -4143,7 +4143,7 @@ class LMS {
 		else {
 			if (SYSLOG) {
 			    $cusname = $this->getcustomername($row['cid']);
-			    addlogs('skasowano zobowiązanie <b>'.moneyf($row['value']).'</b> dla '.$cusname,'e=rm;m=fin;c='.$row['customerid']);
+			    addlogs('skasowano zobowiązanie  Pozycja: <b>"'.$row['comment'].'"</b> na kwotę: <b>'.moneyf($row['value']).'</b> dla '.$cusname,'e=rm;m=fin;c='.$row['cid']);
 		    }
 			$this->DB->Execute('DELETE FROM cash WHERE id = ?', array($id));
 			if ($row['importid'])
