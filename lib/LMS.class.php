@@ -3059,7 +3059,7 @@ class LMS {
 		    $diff['type']['del'];
 		    $diff['card']['assignments'];
 		    if (isset($diff['old']['liabilities']['name'])) $nazwa = ': '.$diff['old']['liabilities']['name'];
-			else $nazwa = 'w.g. taryfy: '.$this->gettariffname($diff['old']['assignments']['tariffid']);
+			else $nazwa = 'w.g. taryfy: '.$this->GetTariffName($diff['old']['assignments']['tariffid']);
 		    addlogs('skasowano zobowiązanie '.$nazwa.', klient: '.$this->getcustomername($diff['old']['assignments']['customerid']),'e=rm;m=fin;c='.$diff['old']['assignments']['customerid']);
 		}
 		
@@ -3211,7 +3211,7 @@ class LMS {
 					
 					if (SYSLOG && !empty($result) && !empty($data['customerid'])) {
 					    if (!empty($data['liabilityid']))
-						$nazwa = $this->DB->GetOne('SELECT name FROM liabilites WHERE id=? LIMIT 1;',array($data['liabilityid']));
+						$nazwa = $this->DB->GetOne('SELECT name FROM liabilities WHERE id=? LIMIT 1;',array($data['liabilityid']));
 					    else
 						$nazwa = $this->DB->GetOne('SELECT name FROM tariffs WHERE id=? LIMIT 1;',array($data['tariffid']));
 					    addlogs('dodano zobowiązanie: '.$nazwa.', klient: '.$this->getcustomername($data['customerid']),'e=add;m=fin;c='.$data['customerid']);
@@ -3251,11 +3251,29 @@ class LMS {
 			$result[] = $this->DB->GetLastInsertID('assignments');
 			
 			if (SYSLOG && !empty($result) && !empty($data['customerid'])) {
-				if (!empty($data['liabilityid']))
-				    $nazwa = $this->DB->GetOne('SELECT name FROM liabilites WHERE id=? LIMIT 1;',array($data['liabilityid']));
-				else
-				    $nazwa = $this->DB->GetOne('SELECT name FROM tariffs WHERE id=? LIMIT 1;',array($data['tariffid']));
-			    addlogs('dodano zobowiązanie: '.$nazwa.', klient: '.$this->getcustomername($data['customerid']),'e=add;m=fin;c='.$data['customerid']);
+                                if  ($data['datefrom'] != 0) $data_od = ( ' okres od: '.date('Y/m/d', $data['datefrom'])); 
+                                else $data_od = 'od: "nie ustawiono" ';
+                                
+                                if  ($data['dateto'] != 0) $data_do = ( 'do: '.date('Y/m/d', $data['dateto'])); 
+                                else $data_do = 'do: "nie ustawiono" ';
+                                
+                                if ($data['period'] == 5) $nalicz = ', nalicza rocznie, '; elseif ($data['period'] == 7) $nalicz = ', nalicza półrocznie, '; elseif ($data['period'] == 4) $nalicz = ', nalicza kwartalnie, '; elseif ($data['period'] == 3) $nalicz = ', nalicza miesięcznie, '; elseif ($data['period'] == 0) $nalicz = ', nalicza jednorazowo, ';    
+                                
+                                if ($data['pdiscount'] !=0 || $data['vdiscount'] != 0) $rabat = ' z rabatem'; else $rabat = ' bez rabatu'; 
+                                
+                                if ($data['invoice'] == 1) $opcje = ', z fakturą VAT'; elseif ($data['invoice'] == 6) $opcje = ', z fakturą proforma '; else $opcje = ', tylko naliczanie ';
+                                
+                                if ($data['settlement'] != 0) $opcje_ = ' z wyrównaniem';    
+				
+                                if ($data['tariffid'] == 0) {
+                                    $zap = $this->DB->GetRow('SELECT name, value FROM liabilities WHERE id=? LIMIT 1;',array($lid));
+				    $nazwa = ' beztaryfowe <b> '.$zap['name'].'</b> na kwotę: <b>'.moneyf($zap['value']).'</b> ';
+                                }
+				else {
+                                    $zap = $this->DB->GetRow('SELECT name, value FROM tariffs WHERE id=? LIMIT 1;',array($data['tariffid']));
+				    $nazwa = ' taryfa <b>'.$zap['name'].'</b> na kwotę: <b>'.moneyf($zap['value']).'</b> ';
+                                }
+			    addlogs('dodano zobowiązanie: '.$nazwa.' '.$rabat.' '.$nalicz.' '.$data_od.' '.$data_do.' '.$opcje.' '.$opcje_.', klient: '.$this->getcustomername($data['customerid']),'e=add;m=fin;c='.$data['customerid']);
 			}
 			
 		}
@@ -3972,7 +3990,7 @@ class LMS {
 		return $this->DB->Execute('DELETE FROM tariffs WHERE id=?', array($id));
 	}
 
-	function gettariffname($id)
+	function GetTariffName($id)
 	{
 	    return $this->DB->getone('select name from tariffs where id = ? limit 1;',array(intval($id)));
 	}
